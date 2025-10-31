@@ -1,4 +1,185 @@
 <div class="page-content">
-  <h2>Reportes</h2>
-  <p>Reportes y gráficas (placeholder)</p>
+  <!-- ENCABEZADO -->
+  <div class="reportes-header">
+    <h2>📊 Reportes y Estadísticas</h2>
+    <p>Genera informes detallados de clientes, pedidos, vehículos y conductores</p>
+  </div>
+
+  <!-- MENSAJE DE ERROR -->
+  <div *ngIf="error" class="error-message">
+    ⚠️ {{ error }}
+  </div>
+
+  <!-- TARJETAS DE REPORTES -->
+  <div class="reportes-grid">
+    <!-- Clientes -->
+    <div
+      class="reporte-card"
+      [class.active]="tipoReporte === 'clientes'"
+      (click)="seleccionarReporte('clientes')"
+    >
+      <div class="card-icon">👥</div>
+      <h3>Reporte de Clientes</h3>
+      <p>Listado de clientes con información y estado.</p>
+    </div>
+
+    <!-- Pedidos -->
+    <div
+      class="reporte-card"
+      [class.active]="tipoReporte === 'pedidos'"
+      (click)="seleccionarReporte('pedidos')"
+    >
+      <div class="card-icon">📦</div>
+      <h3>Reporte de Pedidos</h3>
+      <p>Historial de pedidos y estados de entrega.</p>
+    </div>
+
+    <!-- Vehículos -->
+    <div
+      class="reporte-card"
+      [class.active]="tipoReporte === 'vehiculos'"
+      (click)="seleccionarReporte('vehiculos')"
+    >
+      <div class="card-icon">🚚</div>
+      <h3>Reporte de Vehículos</h3>
+      <p>Inventario y estado operativo de los vehículos.</p>
+    </div>
+
+    <!-- Conductores -->
+    <div
+      class="reporte-card"
+      [class.active]="tipoReporte === 'conductores'"
+      (click)="seleccionarReporte('conductores')"
+    >
+      <div class="card-icon">🪪</div>
+      <h3>Reporte de Conductores</h3>
+      <p>Disponibilidad y rutas completadas.</p>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros-panel" *ngIf="tipoReporte">
+    <h3>🔍 Filtros</h3>
+
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label for="fechaInicio">Fecha Inicio</label>
+        <input 
+          id="fechaInicio"
+          type="date" 
+          [(ngModel)]="filtros.fechaInicio"
+          name="fechaInicio" />
+      </div>
+
+      <div class="filtro-item">
+        <label for="fechaFin">Fecha Fin</label>
+        <input 
+          id="fechaFin"
+          type="date" 
+          [(ngModel)]="filtros.fechaFin"
+          name="fechaFin" />
+      </div>
+
+      <div class="filtro-item" *ngIf="tipoReporte === 'clientes'">
+        <label for="estado">Estado</label>
+        <select 
+          id="estado"
+          [(ngModel)]="filtros.estado"
+          name="estado">
+          <option value="">Todos</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+          <option value="suspendido">Suspendido</option>
+        </select>
+      </div>
+
+      <div class="filtro-item" *ngIf="tipoReporte === 'pedidos'">
+        <label for="estadoPedido">Estado Pedido</label>
+        <select 
+          id="estadoPedido"
+          [(ngModel)]="filtros.estadoPedido"
+          name="estadoPedido">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="en_proceso">En Proceso</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="filtro-item" *ngIf="tipoReporte === 'vehiculos'">
+        <label for="tipoVehiculo">Tipo Vehículo</label>
+        <select 
+          id="tipoVehiculo"
+          [(ngModel)]="filtros.tipoVehiculo"
+          name="tipoVehiculo">
+          <option value="">Todos</option>
+          <option value="camioneta">Camioneta</option>
+          <option value="furgon">Furgón</option>
+          <option value="camion">Camión</option>
+          <option value="moto">Moto</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filtros-actions">
+      <button class="btn-primary" (click)="generarReporte()">📄 Generar</button>
+      <button class="btn-secondary" (click)="limpiarFiltros()">🧹 Limpiar</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="loading">
+    <div class="loading-spinner"></div>
+    Generando reporte...
+  </div>
+
+  <!-- ESTADÍSTICAS RESUMEN -->
+  <div class="resumen-stats" *ngIf="!loading && estadisticasResumen.length > 0">
+    <div class="stat-card" *ngFor="let stat of estadisticasResumen">
+      <div class="stat-card-label">{{ stat.label }}</div>
+      <div class="stat-card-value">{{ stat.value }}</div>
+    </div>
+  </div>
+
+  <!-- TABLA DE RESULTADOS -->
+  <div class="reporte-table-wrapper" *ngIf="!loading && datosReporte && datosReporte.length > 0">
+    <div class="reporte-table-header">
+      <h3>{{ tituloReporte }}</h3>
+      <div class="table-actions">
+        <button class="btn-success" (click)="exportarPDF()">📄 PDF</button>
+        <button class="btn-secondary" (click)="exportarExcel()">📊 Excel</button>
+        <button class="btn-secondary" (click)="imprimirReporte()">🖨️ Imprimir</button>
+      </div>
+    </div>
+
+    <div id="reporte-content">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th *ngFor="let col of getColumnKeys()">{{ formatColumnName(col) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of datosReporte">
+            <td *ngFor="let col of getColumnKeys()">{{ getColumnValue(item, col) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SIN RESULTADOS -->
+  <div class="empty-state" *ngIf="!loading && tipoReporte && datosReporte && datosReporte.length === 0">
+    <div class="empty-state-icon">🔭</div>
+    <h3>No hay datos</h3>
+    <p>Prueba con otros filtros o fechas.</p>
+  </div>
+
+  <!-- SIN SELECCIÓN -->
+  <div class="empty-state" *ngIf="!loading && !tipoReporte">
+    <div class="empty-state-icon">📊</div>
+    <h3>Selecciona un tipo de reporte</h3>
+    <p>Haz clic en una tarjeta para comenzar.</p>
+  </div>
 </div>
